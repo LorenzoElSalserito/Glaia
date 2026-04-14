@@ -27,3 +27,5 @@ dist-electron
 glaia/
 profiles/
 cache/
+0*.md
+Confronto*.md
