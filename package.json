@@ -1,0 +1,30 @@
+{
+  "name": "glaia",
+  "version": "0.1.0",
+  "description": "AI Workspace Desktop AGPLv3",
+  "main": "./out/main/index.js",
+  "author": "Glaia Team",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron .",
+    "package": "electron-builder"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^2.0.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zod": "^3.22.4",
+    "zustand": "^4.4.7"
+  }
+}
