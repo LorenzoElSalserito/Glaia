@@ -28,5 +28,4 @@ dist-electron
 glaia/
 profiles/
 cache/
-*PRD*.md
-PLAN.md
+/docs
