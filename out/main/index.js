@@ -828,6 +828,10 @@ function getWindowIcon() {
   }
   return path.join(__dirname, "../../build/icon.png");
 }
+function getSplashIconDataUrl() {
+  const iconBuffer = fs.readFileSync(getWindowIcon());
+  return `data:image/png;base64,${iconBuffer.toString("base64")}`;
+}
 function createSplashWindow() {
   const splash = new electron.BrowserWindow({
     width: 420,
@@ -857,14 +861,14 @@ function createSplashWindow() {
 html,body{margin:0;width:100%;height:100%;background:#0c0d10;color:#f4f4f5;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 body{display:grid;place-items:center}
 .splash{display:flex;flex-direction:column;align-items:center;gap:18px}
-.mark{width:76px;height:76px;border-radius:18px;background:#2563eb;color:#fff;display:grid;place-items:center;font-size:34px;font-weight:800;box-shadow:0 18px 48px rgba(37,99,235,.32)}
+.mark{width:76px;height:76px;border-radius:18px;display:block;object-fit:cover;box-shadow:0 18px 48px rgba(37,99,235,.32)}
 .title{font-size:28px;font-weight:750}
 .bar{width:180px;height:4px;border-radius:999px;background:#26272e;overflow:hidden}
 .bar::before{content:"";display:block;width:40%;height:100%;background:#60a5fa;border-radius:inherit;animation:load 1.1s ease-in-out infinite}
 @keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(280%)}}
 </style>
 </head>
-<body><main class="splash" aria-label="Glaia"><div class="mark">G</div><div class="title">Glaia</div><div class="bar"></div></main></body>
+<body><main class="splash" aria-label="Glaia"><img class="mark" src="${getSplashIconDataUrl()}" alt="Glaia icon" /><div class="title">Glaia</div><div class="bar"></div></main></body>
 </html>`;
   splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`).then(() => {
     if (!splash.isDestroyed()) splash.show();
