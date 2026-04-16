@@ -13,12 +13,13 @@
     "icons": "node scripts/generate-icons.mjs",
     "build": "npm run icons && electron-vite build",
     "start": "electron .",
-    "package": "npm run build && electron-builder",
-    "package:linux": "npm run build && electron-builder --linux",
-
+    "package": "npm run build && electron-builder --publish never",
+    "package:linux": "npm run build && electron-builder --linux --publish never",
     "dist:linux": "npm run package:linux",
-    "package:win": "npm run build && electron-builder --win",
-    "package:mac": "npm run build && electron-builder --mac",
+    "package:win": "npm run build && electron-builder --win --publish never",
+    "dist:win": "npm run package:win",
+    "package:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:mac": "npm run package:mac",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -29,6 +30,7 @@
     "artifactName": "glaia-desktop.${ext}",
     "asar": true,
     "directories": {
+      "buildResources": "build",
       "output": "dist"
     },
     "files": [
@@ -38,57 +40,92 @@
     "extraResources": [
       {
         "from": "build/icon.png",
-        "to": "icon.png"
+        "to": "assets/icon.png"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "assets/icon.ico"
+      },
+      {
+        "from": "build/icon.icns",
+        "to": "assets/icon.icns"
       }
     ],
     "mac": {
-      "target": [
-        "dmg",
-        "pkg"
-      ],
+      "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg"
+        }
+      ],
       "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false
     },
     "dmg": {
-      "sign": false
-    },
-    "pkg": {
-      "installLocation": "/Applications",
-      "allowAnywhere": true,
-      "allowCurrentUserHome": true,
-      "allowRootDirectory": true,
-      "isRelocatable": true,
-      "isVersionChecked": true,
-      "overwriteAction": "upgrade"
+      "sign": false,
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "title": "Glaia ${version}"
     },
     "win": {
+      "publisherName": "Lorenzo DM",
+      "icon": "build/icon.ico",
       "target": [
-        "nsis"
-      ],
-      "icon": "build/icon.ico"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "allowElevation": true,
-      "perMachine": false,
-      "createDesktopShortcut": "always",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Glaia",
-      "uninstallDisplayName": "Glaia",
+      "artifactName": "glaia-desktop.${ext}",
+      "perMachine": true,
+      "allowElevation": true,
+      "installerLanguages": [
+        "en_US",
+        "it_IT"
+      ],
+      "language": 1033,
+      "menuCategory": "Glaia",
+      "uninstallDisplayName": "Glaia ${version}",
       "deleteAppDataOnUninstall": false
     },
     "linux": {
+      "executableName": "glaia-desktop",
       "target": [
-        "AppImage",
         "deb"
       ],
       "icon": "build/icon.png",
       "category": "Office",
       "desktop": {
-        "Name": "Glaia"
+        "Name": "Glaia",
+        "Icon": "glaia-desktop"
       }
     }
   },

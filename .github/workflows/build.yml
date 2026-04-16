@@ -22,15 +22,15 @@ jobs:
           - platform: linux
             os: ubuntu-latest
             package_script: package:linux
-            artifact_glob: dist/glaia-desktop.{AppImage,deb}
+            artifact_glob: dist/glaia-desktop.deb
           - platform: windows
             os: windows-latest
             package_script: package:win
-            artifact_glob: dist/glaia-desktop.{exe,blockmap}
+            artifact_glob: dist/glaia-desktop.exe
           - platform: macos
             os: macos-latest
             package_script: package:mac
-            artifact_glob: dist/glaia-desktop.{dmg,pkg,blockmap}
+            artifact_glob: dist/glaia-desktop.dmg
 
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"

@@ -68,7 +68,7 @@ function mainT(key: keyof (typeof mainMessages)['it']): string {
 
 function getWindowIcon(): string {
   if (app.isPackaged) {
-    return join(process.resourcesPath, 'icon.png')
+    return join(process.resourcesPath, 'assets', 'icon.png')
   }
   return join(__dirname, '../../build/icon.png')
 }

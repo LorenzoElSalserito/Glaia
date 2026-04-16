@@ -824,7 +824,7 @@ function mainT(key) {
 }
 function getWindowIcon() {
   if (electron.app.isPackaged) {
-    return path.join(process.resourcesPath, "icon.png");
+    return path.join(process.resourcesPath, "assets", "icon.png");
   }
   return path.join(__dirname, "../../build/icon.png");
 }
