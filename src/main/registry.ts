@@ -110,13 +110,6 @@ const DEFAULT_PROVIDERS_INPUT: ProviderManifestInput[] = [
   },
   {
     schemaVersion: '1.0',
-    id: 'poe',
-    name: 'Poe',
-    startUrl: 'https://poe.com/',
-    partition: 'persist:provider.poe.default',
-  },
-  {
-    schemaVersion: '1.0',
     id: 'pi-ai',
     name: 'Pi AI',
     startUrl: 'https://pi.ai/',
