@@ -125,8 +125,10 @@
       "category": "Office",
       "desktop": {
         "Name": "Glaia",
-        "Icon": "/usr/share/icons/hicolor/1080x1080/apps/librepm-desktop.png"
-      }
+        "Icon": "/usr/share/icons/hicolor/1080x1080/apps/glaia-desktop.png"
+      },
+      "synopsis": "AI Workspace Desktop AGPLv3",
+      "description": "Glaia è un workspace desktop basato sulle moderne IA distribuito con licenza AGPLv3."
     }
   },
   "devDependencies": {
