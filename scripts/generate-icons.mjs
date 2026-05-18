@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Generates build/icon.png (1024), build/icon.ico and build/icon.icns from
-// src/renderer/assets/icon.png so electron-builder can package each platform
-// with the correct format without relying on macOS-only tools.
+// Generates build/icon.png, build/icons/1080x1080.png, build/icon.ico and
+// build/icon.icns from src/renderer/assets/icon.png so electron-builder can
+// package each platform with the correct format without relying on macOS-only
+// tools.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -14,6 +15,7 @@ const projectRoot = resolve(__dirname, '..')
 
 const sourcePng = resolve(projectRoot, 'src/renderer/assets/icon.png')
 const outDir = resolve(projectRoot, 'build')
+const linuxIconDir = resolve(outDir, 'icons')
 
 if (!existsSync(sourcePng)) {
   console.error(`[icons] source not found: ${sourcePng}`)
@@ -21,11 +23,13 @@ if (!existsSync(sourcePng)) {
 }
 
 mkdirSync(outDir, { recursive: true })
+mkdirSync(linuxIconDir, { recursive: true })
 
 const input = readFileSync(sourcePng)
 
-// electron-builder picks build/icon.png for Linux.
+// electron-builder uses build/icons/<size>.png to install Linux hicolor icons.
 writeFileSync(resolve(outDir, 'icon.png'), input)
+writeFileSync(resolve(linuxIconDir, '1080x1080.png'), input)
 
 const ico = png2icons.createICO(input, png2icons.BILINEAR, 0, false)
 if (!ico) {
@@ -41,4 +45,4 @@ if (!icns) {
 }
 writeFileSync(resolve(outDir, 'icon.icns'), icns)
 
-console.log('[icons] wrote build/icon.png, build/icon.ico, build/icon.icns')
+console.log('[icons] wrote build/icon.png, build/icons/1080x1080.png, build/icon.ico, build/icon.icns')

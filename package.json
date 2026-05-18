@@ -121,7 +121,7 @@
       "target": [
         "deb"
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icons",
       "category": "Office",
       "desktop": {
         "Name": "Glaia",
