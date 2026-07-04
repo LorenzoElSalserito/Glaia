@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const zod = require("zod");
 const util = require("util");
-const version = "0.1.0";
+const version = "0.1.1";
 const packageJson = {
   version
 };
@@ -340,6 +340,20 @@ const TOOLBAR_HEIGHT = 52;
 const FALLBACK_SIDEBAR_WIDTH = 280;
 const COMPACT_SIDEBAR_WIDTH = 208;
 const HIDDEN_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
+const CONTEXT_MENU_LABELS = {
+  it: {
+    cut: "Taglia",
+    copy: "Copia",
+    paste: "Incolla",
+    selectAll: "Seleziona tutto"
+  },
+  en: {
+    cut: "Cut",
+    copy: "Copy",
+    paste: "Paste",
+    selectAll: "Select All"
+  }
+};
 class ViewManager {
   currentView = null;
   currentProvider = null;
@@ -509,6 +523,25 @@ class ViewManager {
       } catch {
         event.preventDefault();
       }
+    });
+    wc.on("context-menu", (_event, params) => {
+      const labels = CONTEXT_MENU_LABELS[this.settingsManager.get().locale] ?? CONTEXT_MENU_LABELS.it;
+      const { editFlags, isEditable } = params;
+      const template = [];
+      if (editFlags.canCut && isEditable) {
+        template.push({ label: labels.cut, role: "cut" });
+      }
+      if (editFlags.canCopy) {
+        template.push({ label: labels.copy, role: "copy" });
+      }
+      if (editFlags.canPaste && isEditable) {
+        template.push({ label: labels.paste, role: "paste" });
+      }
+      if (editFlags.canSelectAll) {
+        template.push({ label: labels.selectAll, role: "selectAll" });
+      }
+      if (template.length === 0) return;
+      electron.Menu.buildFromTemplate(template).popup({ window: this.mainWindow });
     });
     wc.on("did-start-loading", () => this.broadcastState());
     wc.on("did-stop-loading", () => this.broadcastState());
@@ -801,14 +834,28 @@ const mainMessages = {
     importTitle: "Importa catalogo provider",
     invalidCatalog: "File catalogo non valido",
     bugMailBody: "Descrivi qui il problema riscontrato, i passaggi per riprodurlo e cosa ti aspettavi succedesse.",
-    bugMailLogUnavailable: "Log non disponibile."
+    bugMailLogUnavailable: "Log non disponibile.",
+    menuEdit: "Modifica",
+    menuUndo: "Annulla",
+    menuRedo: "Ripeti",
+    menuCut: "Taglia",
+    menuCopy: "Copia",
+    menuPaste: "Incolla",
+    menuSelectAll: "Seleziona tutto"
   },
   en: {
     exportTitle: "Export provider catalog",
     importTitle: "Import provider catalog",
     invalidCatalog: "Invalid catalog file",
     bugMailBody: "Describe the issue, the steps to reproduce it, and what you expected to happen.",
-    bugMailLogUnavailable: "Log unavailable."
+    bugMailLogUnavailable: "Log unavailable.",
+    menuEdit: "Edit",
+    menuUndo: "Undo",
+    menuRedo: "Redo",
+    menuCut: "Cut",
+    menuCopy: "Copy",
+    menuPaste: "Paste",
+    menuSelectAll: "Select All"
   }
 };
 function mainT(key) {
@@ -893,6 +940,26 @@ function buildBugReportMailto() {
     body
   });
   return `mailto:commercial.lorenzodm@gmail.com?${params.toString()}`;
+}
+function buildApplicationMenu() {
+  const editSubmenu = [
+    { label: mainT("menuUndo"), role: "undo" },
+    { label: mainT("menuRedo"), role: "redo" },
+    { type: "separator" },
+    { label: mainT("menuCut"), role: "cut" },
+    { label: mainT("menuCopy"), role: "copy" },
+    { label: mainT("menuPaste"), role: "paste" },
+    { type: "separator" },
+    { label: mainT("menuSelectAll"), role: "selectAll" }
+  ];
+  const template = [
+    ...process.platform === "darwin" ? [{ role: "appMenu" }] : [],
+    { role: "fileMenu" },
+    { label: mainT("menuEdit"), submenu: editSubmenu },
+    { role: "viewMenu" },
+    { role: "windowMenu" }
+  ];
+  electron.Menu.setApplicationMenu(electron.Menu.buildFromTemplate(template));
 }
 function attachWebContentsLogging(wc, scope) {
   const wcLog = createLogger(scope);
@@ -1197,6 +1264,7 @@ electron.app.whenReady().then(async () => {
   log.info("registry loaded", { count: registry.list().length });
   await settingsManager.load();
   log.info("settings loaded", settingsManager.get());
+  buildApplicationMenu();
   registerIpcHandlers();
   await createWindow();
   electron.app.on("activate", () => {

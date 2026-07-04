@@ -1,8 +1,10 @@
 import {
   BrowserWindow,
+  Menu,
   WebContentsView,
   session,
   shell,
+  type MenuItemConstructorOptions,
   type Session,
 } from 'electron'
 import type {
@@ -17,6 +19,28 @@ const TOOLBAR_HEIGHT = 52
 const FALLBACK_SIDEBAR_WIDTH = 280
 const COMPACT_SIDEBAR_WIDTH = 208
 const HIDDEN_BOUNDS = { x: 0, y: 0, width: 0, height: 0 }
+
+type ContextMenuLabels = {
+  cut: string
+  copy: string
+  paste: string
+  selectAll: string
+}
+
+const CONTEXT_MENU_LABELS: Record<'it' | 'en', ContextMenuLabels> = {
+  it: {
+    cut: 'Taglia',
+    copy: 'Copia',
+    paste: 'Incolla',
+    selectAll: 'Seleziona tutto',
+  },
+  en: {
+    cut: 'Cut',
+    copy: 'Copy',
+    paste: 'Paste',
+    selectAll: 'Select All',
+  },
+}
 
 export class ViewManager {
   private currentView: WebContentsView | null = null
@@ -225,6 +249,30 @@ export class ViewManager {
       } catch {
         event.preventDefault()
       }
+    })
+
+    wc.on('context-menu', (_event, params) => {
+      const labels =
+        CONTEXT_MENU_LABELS[this.settingsManager.get().locale] ??
+        CONTEXT_MENU_LABELS.it
+      const { editFlags, isEditable } = params
+      const template: MenuItemConstructorOptions[] = []
+
+      if (editFlags.canCut && isEditable) {
+        template.push({ label: labels.cut, role: 'cut' })
+      }
+      if (editFlags.canCopy) {
+        template.push({ label: labels.copy, role: 'copy' })
+      }
+      if (editFlags.canPaste && isEditable) {
+        template.push({ label: labels.paste, role: 'paste' })
+      }
+      if (editFlags.canSelectAll) {
+        template.push({ label: labels.selectAll, role: 'selectAll' })
+      }
+
+      if (template.length === 0) return
+      Menu.buildFromTemplate(template).popup({ window: this.mainWindow })
     })
 
     wc.on('did-start-loading', () => this.broadcastState())

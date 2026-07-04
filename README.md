@@ -1,7 +1,7 @@
 # Glaia
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Current Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/your-repo/glaia/releases)
+[![Current Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/your-repo/glaia/releases)
 ![icon.svg](src/renderer/assets/icon.svg)
 **Glaia is a desktop AI Workspace, open source and local-first, designed to unify and organize access to multiple web-based Artificial Intelligence services.**
 

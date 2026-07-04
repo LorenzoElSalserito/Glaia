@@ -5,7 +5,9 @@ import {
   session,
   ipcMain,
   dialog,
+  Menu,
   type IpcMainInvokeEvent,
+  type MenuItemConstructorOptions,
   type WebContents,
 } from 'electron'
 import { join } from 'path'
@@ -50,6 +52,13 @@ const mainMessages: Record<Locale, Record<string, string>> = {
     bugMailBody:
       'Descrivi qui il problema riscontrato, i passaggi per riprodurlo e cosa ti aspettavi succedesse.',
     bugMailLogUnavailable: 'Log non disponibile.',
+    menuEdit: 'Modifica',
+    menuUndo: 'Annulla',
+    menuRedo: 'Ripeti',
+    menuCut: 'Taglia',
+    menuCopy: 'Copia',
+    menuPaste: 'Incolla',
+    menuSelectAll: 'Seleziona tutto',
   },
   en: {
     exportTitle: 'Export provider catalog',
@@ -58,6 +67,13 @@ const mainMessages: Record<Locale, Record<string, string>> = {
     bugMailBody:
       'Describe the issue, the steps to reproduce it, and what you expected to happen.',
     bugMailLogUnavailable: 'Log unavailable.',
+    menuEdit: 'Edit',
+    menuUndo: 'Undo',
+    menuRedo: 'Redo',
+    menuCut: 'Cut',
+    menuCopy: 'Copy',
+    menuPaste: 'Paste',
+    menuSelectAll: 'Select All',
   },
 }
 
@@ -153,6 +169,34 @@ function buildBugReportMailto(): string {
     body,
   })
   return `mailto:commercial.lorenzodm@gmail.com?${params.toString()}`
+}
+
+function buildApplicationMenu(): void {
+  const editSubmenu: MenuItemConstructorOptions[] = [
+    { label: mainT('menuUndo'), role: 'undo' },
+    { label: mainT('menuRedo'), role: 'redo' },
+    { type: 'separator' },
+    { label: mainT('menuCut'), role: 'cut' },
+    { label: mainT('menuCopy'), role: 'copy' },
+    { label: mainT('menuPaste'), role: 'paste' },
+    { type: 'separator' },
+    { label: mainT('menuSelectAll'), role: 'selectAll' },
+  ]
+
+  // Preserve Electron's default menu structure (File/View/Window via roles) so
+  // no default accelerators are lost, and only override Edit with a localized
+  // submenu that guarantees copy/paste reach the provider WebContentsView.
+  const template: MenuItemConstructorOptions[] = [
+    ...(process.platform === 'darwin'
+      ? ([{ role: 'appMenu' }] as MenuItemConstructorOptions[])
+      : []),
+    { role: 'fileMenu' },
+    { label: mainT('menuEdit'), submenu: editSubmenu },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+  ]
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
 function attachWebContentsLogging(wc: WebContents, scope: string): void {
@@ -503,6 +547,7 @@ app.whenReady().then(async () => {
   log.info('registry loaded', { count: registry.list().length })
   await settingsManager.load()
   log.info('settings loaded', settingsManager.get())
+  buildApplicationMenu()
   registerIpcHandlers()
 
   void ProviderManifestSchema
