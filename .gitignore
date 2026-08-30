@@ -13,6 +13,9 @@ build
 dist-electron
 scripts/.release-pending.json
 *.local
+.codex
+.claude
+.agent*
 
 # Editor directories and files
 .vscode/*
