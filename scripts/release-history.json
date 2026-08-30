@@ -1,0 +1,34 @@
+{
+  "releases": [
+    {
+      "version": "0.1.3",
+      "date": "Sun, 30 Aug 2026 16:11:53 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo DM <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Maintenance release."
+      ]
+    },
+    {
+      "version": "0.1.2",
+      "date": "Sun, 30 Aug 2026 15:48:09 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo DM <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Maintenance release."
+      ]
+    },
+    {
+      "version": "0.1.1",
+      "date": "Sun, 30 Aug 2026 00:00:00 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo DM <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Prima release inserita nella pipeline di packaging versionata."
+      ]
+    }
+  ]
+}

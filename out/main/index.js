@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const zod = require("zod");
 const util = require("util");
-const version = "0.1.1";
+const version = "0.1.3";
 const packageJson = {
   version
 };
