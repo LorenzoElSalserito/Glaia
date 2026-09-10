@@ -1,5 +1,6 @@
 import {
   app,
+  screen,
   shell,
   BrowserWindow,
   session,
@@ -26,6 +27,7 @@ import {
 } from './logger'
 import {
   AppSettingsSchema,
+  GUI_ZOOM_FACTORS,
   IpcChannels,
   ProviderManifestSchema,
   type AppSettings,
@@ -196,7 +198,31 @@ function buildApplicationMenu(): void {
     { role: 'windowMenu' },
   ]
 
+  const view = template.find((item) => item.role === 'viewMenu')!
+  view.submenu = [
+    { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' },
+    { type: 'separator' },
+    { label: 'Zoom 100%', accelerator: 'CommandOrControl+0', click: () => { void updateSettings({ zoomFactor: 1 }) } },
+    { label: 'Zoom +', accelerator: 'CommandOrControl+Plus', click: () => { void stepZoom(1) } },
+    { label: 'Zoom −', accelerator: 'CommandOrControl+-', click: () => { void stepZoom(-1) } },
+    { type: 'separator' }, { role: 'togglefullscreen' },
+  ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
+async function stepZoom(direction: number): Promise<void> {
+  const index = GUI_ZOOM_FACTORS.indexOf(settingsManager.get().zoomFactor)
+  const next = GUI_ZOOM_FACTORS[Math.max(0, Math.min(GUI_ZOOM_FACTORS.length - 1, index + direction))]!
+  await updateSettings({ zoomFactor: next })
+}
+
+async function updateSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
+  const updated = await settingsManager.update(patch)
+  mainWindow?.webContents.setZoomFactor(updated.zoomFactor)
+  viewManager?.refreshZoom()
+  mainWindow?.webContents.send(IpcChannels.SettingsChanged, updated)
+  return updated
+
 }
 
 function attachWebContentsLogging(wc: WebContents, scope: string): void {
@@ -237,8 +263,8 @@ async function createWindow(): Promise<void> {
   })
 
   const window = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: Math.min(1280, screen.getPrimaryDisplay().workArea.width),
+    height: Math.min(820, screen.getPrimaryDisplay().workArea.height),
     minWidth: 720,
     minHeight: 480,
     show: false,
@@ -246,6 +272,7 @@ async function createWindow(): Promise<void> {
     backgroundColor: '#1e1e1e',
     icon: getWindowIcon(),
     webPreferences: {
+      zoomFactor: settingsManager.get().zoomFactor,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       contextIsolation: true,
@@ -258,6 +285,25 @@ async function createWindow(): Promise<void> {
 
   mainWindow = window
   viewManager = new ViewManager(window, settingsManager)
+  const fitMonitor = () => {
+    if (window.isDestroyed() || window.isFullScreen() || window.isMaximized()) return
+    const bounds = window.getBounds()
+    const area = screen.getDisplayMatching(bounds).workArea
+    const width = Math.min(bounds.width, area.width)
+    const height = Math.min(bounds.height, area.height)
+    window.setBounds({ width, height,
+      x: Math.max(area.x, Math.min(bounds.x, area.x + area.width - width)),
+      y: Math.max(area.y, Math.min(bounds.y, area.y + area.height - height)) })
+  }
+  screen.on('display-metrics-changed', fitMonitor)
+  screen.on('display-removed', fitMonitor)
+  window.on('closed', () => {
+    screen.removeListener('display-metrics-changed', fitMonitor)
+    screen.removeListener('display-removed', fitMonitor)
+  })
+  window.webContents.on('did-finish-load', () => {
+    window.webContents.setZoomFactor(settingsManager.get().zoomFactor)
+  })
 
   attachWebContentsLogging(window.webContents, 'shell')
 
@@ -289,7 +335,7 @@ async function createWindow(): Promise<void> {
     log.info('shell ready-to-show')
     window.show()
     closeSplashWindow()
-    if (isDev) {
+    if (isDev && process.env['ELECTRON_RENDERER_URL']) {
       window.webContents.openDevTools({ mode: 'detach' })
     }
     const settings = settingsManager.get()
@@ -326,7 +372,7 @@ function registerIpcHandlers(): void {
     IpcChannels.SettingsUpdate,
     async (_event: IpcMainInvokeEvent, patch: unknown) => {
       const partial = AppSettingsSchema.partial().parse(patch ?? {})
-      const updated = await settingsManager.update(partial as Partial<AppSettings>)
+      const updated = await updateSettings(partial as Partial<AppSettings>)
       if (
         viewManager &&
         mainWindow &&
@@ -524,6 +570,9 @@ function applyGlobalSecurity(): void {
   )
 
   app.on('web-contents-created', (_event, contents) => {
+    contents.on('zoom-changed', (_event, direction) => {
+      void stepZoom(direction === 'in' ? 1 : -1).catch((error) => log.error('zoom failed', { error: String(error) }))
+    })
     contents.on('will-attach-webview', (e) => {
       log.warn('will-attach-webview blocked')
       e.preventDefault()

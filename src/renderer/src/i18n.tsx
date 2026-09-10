@@ -13,6 +13,8 @@ type Messages = Record<string, string>
 type VarMap = Record<string, string | number>
 
 const it: Messages = {
+  'settings.zoom': 'Zoom interfaccia',
+  'settings.zoomHint': 'Scala tutta l’interfaccia e i contenuti dei provider. La scelta viene salvata automaticamente.',
   'app.brand': 'Glaia',
   'app.welcomeTitle': 'Benvenuto in Glaia',
   'app.welcomeBody':
@@ -151,6 +153,8 @@ const it: Messages = {
 }
 
 const en: Messages = {
+  'settings.zoom': 'Interface zoom',
+  'settings.zoomHint': 'Scales the entire interface and provider content. Your choice is saved automatically.',
   'app.brand': 'Glaia',
   'app.welcomeTitle': 'Welcome to Glaia',
   'app.welcomeBody':

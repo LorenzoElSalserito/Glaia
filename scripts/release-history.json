@@ -1,6 +1,21 @@
 {
   "releases": [
     {
+      "version": "0.2.0",
+      "date": "Thu, 10 Sep 2026 10:53:34 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo DM <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Aggiunto zoom globale persistente al 25%, 50%, 75%, 100%, 125% e 150%, sincronizzato fra interfaccia, provider, menu e scorciatoie.",
+        "Adattamento della finestra all’area utile del monitor e layout responsive da 800×600 a 3840×2160, con modali e pannelli scorrevoli.",
+        "Eliminati troncamenti dei nomi provider e degli URL: testi completi a capo o consultabili tramite scorrimento, anche con contenuti lunghi.",
+        "Corrette coordinate della vista provider con zoom e ridimensionamento; mantenuta copertura dei provider durante l’apertura delle finestre di dialogo.",
+        "Aggiunti test E2E su 42 combinazioni risoluzione/zoom, testi italiani e inglesi, persistenza, navigazione e regressioni copia/incolla; dati di test isolati.",
+        "Corretta pipeline Linux/Windows/macOS: upload del binario versionato realmente generato, verifica del file e aggiornamento Actions al runtime Node 24 e comandi di test compatibili con Node 22."
+      ]
+    },
+    {
       "version": "0.1.3",
       "date": "Sun, 30 Aug 2026 16:11:53 +0200",
       "distribution": "unstable",

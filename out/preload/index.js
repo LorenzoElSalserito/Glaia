@@ -19,6 +19,7 @@ const IpcChannels = {
   ProviderViewState: "provider-view:state-changed",
   ProviderViewSetBounds: "provider-view:set-bounds",
   ProviderViewSetVisible: "provider-view:set-visible",
+  SettingsChanged: "settings:changed",
   SettingsGet: "settings:get",
   SettingsUpdate: "settings:update",
   AppGetVersion: "app:get-version",
@@ -75,6 +76,13 @@ const api = {
     }
   },
   settings: {
+    onChanged: (callback) => {
+      const handler = (_event, settings) => callback(settings);
+      electron.ipcRenderer.on(IpcChannels.SettingsChanged, handler);
+      return () => {
+        electron.ipcRenderer.removeListener(IpcChannels.SettingsChanged, handler);
+      };
+    },
     get: () => electron.ipcRenderer.invoke(IpcChannels.SettingsGet),
     update: (patch) => electron.ipcRenderer.invoke(IpcChannels.SettingsUpdate, patch)
   },

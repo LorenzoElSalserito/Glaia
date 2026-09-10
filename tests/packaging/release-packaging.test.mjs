@@ -56,3 +56,25 @@ test('DEP-5 metadata preserves Glaia identity', () => {
   assert.match(text, /LorenzoElSalserito\/Glaia/)
   assert.match(text, /License: AGPL-3/)
 })
+
+const fs = require('node:fs')
+const path = require('node:path')
+const os = require('node:os')
+const { verifyArtifact } = require('../../scripts/verify-release-artifact.cjs')
+for (const extension of ['deb', 'exe', 'dmg']) {
+  test(`CI resolves the actual versioned ${extension} and rejects stale/empty artifacts`, () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'glaia-artifact-'))
+    try {
+      const pkg = JSON.parse(fs.readFileSync(meta.paths.packageJson, 'utf8'))
+      fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(pkg))
+      fs.mkdirSync(path.join(root, 'dist'))
+      fs.writeFileSync(path.join(root, 'dist', `glaia-desktop.${extension}`), 'old name')
+      assert.throws(() => verifyArtifact(root, extension), /ENOENT/)
+      const expected = `dist/glaia_v${pkg.version}.${extension}`
+      fs.writeFileSync(path.join(root, expected), '')
+      assert.throws(() => verifyArtifact(root, extension), /Empty/)
+      fs.writeFileSync(path.join(root, expected), 'artifact')
+      assert.deepEqual(verifyArtifact(root, extension), { path: expected, version: pkg.version })
+    } finally { fs.rmSync(root, { recursive: true, force: true }) }
+  })
+}

@@ -22,6 +22,7 @@ export const IpcChannels = {
   ProviderViewSetBounds: 'provider-view:set-bounds',
   ProviderViewSetVisible: 'provider-view:set-visible',
 
+  SettingsChanged: 'settings:changed',
   SettingsGet: 'settings:get',
   SettingsUpdate: 'settings:update',
 

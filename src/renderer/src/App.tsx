@@ -67,7 +67,8 @@ function App(): JSX.Element {
     const unsubscribe = window.glaia.providerView.onStateChanged((state) => {
       setViewState(state)
     })
-    return () => unsubscribe()
+    const unsubscribeSettings = window.glaia.settings.onChanged(setSettings)
+    return () => { unsubscribe(); unsubscribeSettings() }
   }, [reloadProviders, reloadSettings])
 
   // Keep main process informed of the host element's layout rect so the

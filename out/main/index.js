@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const zod = require("zod");
 const util = require("util");
-const version = "0.1.3";
+const version = "0.2.0";
 const packageJson = {
   version
 };
@@ -35,9 +35,12 @@ const ProviderCatalogSchema = zod.z.object({
   exportedAt: zod.z.string().datetime(),
   providers: zod.z.array(ProviderManifestSchema)
 });
+const GUI_ZOOM_FACTORS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
+const GuiZoomSchema = zod.z.union([zod.z.literal(0.25), zod.z.literal(0.5), zod.z.literal(0.75), zod.z.literal(1), zod.z.literal(1.25), zod.z.literal(1.5)]);
 const AppSettingsSchema = zod.z.object({
   schemaVersion: zod.z.literal("1.0"),
   locale: zod.z.enum(["it", "en"]).default("it"),
+  zoomFactor: GuiZoomSchema.default(1),
   theme: zod.z.enum(["system", "light", "dark"]).default("system"),
   selectedProviderId: zod.z.string().nullable().default(null),
   compactSidebar: zod.z.boolean().default(false),
@@ -64,6 +67,7 @@ const IpcChannels = {
   ProviderViewState: "provider-view:state-changed",
   ProviderViewSetBounds: "provider-view:set-bounds",
   ProviderViewSetVisible: "provider-view:set-visible",
+  SettingsChanged: "settings:changed",
   SettingsGet: "settings:get",
   SettingsUpdate: "settings:update",
   AppGetVersion: "app:get-version",
@@ -336,9 +340,6 @@ class ProviderRegistry {
     await fs.promises.rename(tmp, this.catalogPath);
   }
 }
-const TOOLBAR_HEIGHT = 52;
-const FALLBACK_SIDEBAR_WIDTH = 280;
-const COMPACT_SIDEBAR_WIDTH = 208;
 const HIDDEN_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
 const CONTEXT_MENU_LABELS = {
   it: {
@@ -395,18 +396,15 @@ class ViewManager {
     if (provider.userAgentMode === "custom" && provider.customUserAgent) {
       view.webContents.setUserAgent(provider.customUserAgent);
     }
+    view.webContents.setZoomFactor(this.settingsManager.get().zoomFactor);
     this.currentView = view;
     this.mainWindow.contentView.addChildView(view);
     this.applyBounds();
     void view.webContents.loadURL(provider.startUrl);
   }
   setHostBounds(bounds) {
-    this.hostBounds = {
-      x: Math.max(0, Math.round(bounds.x)),
-      y: Math.max(0, Math.round(bounds.y)),
-      width: Math.max(0, Math.round(bounds.width)),
-      height: Math.max(0, Math.round(bounds.height))
-    };
+    if (!Object.values(bounds).every(Number.isFinite)) return;
+    this.hostBounds = bounds;
     this.applyBounds();
   }
   setVisible(visible) {
@@ -543,6 +541,7 @@ class ViewManager {
       if (template.length === 0) return;
       electron.Menu.buildFromTemplate(template).popup({ window: this.mainWindow });
     });
+    wc.on("did-finish-load", () => wc.setZoomFactor(this.settingsManager.get().zoomFactor));
     wc.on("did-start-loading", () => this.broadcastState());
     wc.on("did-stop-loading", () => this.broadcastState());
     wc.on("did-navigate", () => this.broadcastState());
@@ -588,19 +587,25 @@ class ViewManager {
       this.currentView.setBounds(HIDDEN_BOUNDS);
       return;
     }
-    if (this.hostBounds) {
-      this.currentView.setBounds(this.hostBounds);
+    if (!this.hostBounds) {
+      this.currentView.setBounds(HIDDEN_BOUNDS);
       return;
     }
-    const bounds = this.mainWindow.getContentBounds();
-    const settings = this.settingsManager.get();
-    const sidebarWidth = settings.compactSidebar ? COMPACT_SIDEBAR_WIDTH : FALLBACK_SIDEBAR_WIDTH;
+    const factor = this.mainWindow.webContents.getZoomFactor();
+    const content = this.mainWindow.getContentBounds();
+    const b = this.hostBounds;
+    const x = Math.min(content.width, Math.max(0, Math.round(b.x * factor)));
+    const y = Math.min(content.height, Math.max(0, Math.round(b.y * factor)));
     this.currentView.setBounds({
-      x: sidebarWidth,
-      y: TOOLBAR_HEIGHT,
-      width: Math.max(0, bounds.width - sidebarWidth),
-      height: Math.max(0, bounds.height - TOOLBAR_HEIGHT)
+      x,
+      y,
+      width: Math.max(0, Math.min(content.width - x, Math.round((b.x + b.width) * factor) - x)),
+      height: Math.max(0, Math.min(content.height - y, Math.round((b.y + b.height) * factor) - y))
     });
+  }
+  refreshZoom() {
+    this.currentView?.webContents.setZoomFactor(this.settingsManager.get().zoomFactor);
+    this.applyBounds();
   }
   computeState() {
     const wc = this.currentView.webContents;
@@ -633,6 +638,7 @@ const DEFAULT_SETTINGS = AppSettingsSchema.parse({
   schemaVersion: "1.0"
 });
 class SettingsManager {
+  saveQueue = Promise.resolve();
   settingsPath;
   currentSettings = DEFAULT_SETTINGS;
   constructor(settingsPath) {
@@ -701,8 +707,11 @@ class SettingsManager {
       throw new Error(`Invalid settings patch: ${result.error.message}`);
     }
     this.currentSettings = result.data;
-    await this.save();
-    return this.currentSettings;
+    const saved = result.data;
+    this.saveQueue = this.saveQueue.catch(() => {
+    }).then(() => this.save());
+    await this.saveQueue;
+    return saved;
   }
   async save() {
     const tmp = `${this.settingsPath}.tmp`;
@@ -959,7 +968,37 @@ function buildApplicationMenu() {
     { role: "viewMenu" },
     { role: "windowMenu" }
   ];
+  const view = template.find((item) => item.role === "viewMenu");
+  view.submenu = [
+    { role: "reload" },
+    { role: "forceReload" },
+    { role: "toggleDevTools" },
+    { type: "separator" },
+    { label: "Zoom 100%", accelerator: "CommandOrControl+0", click: () => {
+      void updateSettings({ zoomFactor: 1 });
+    } },
+    { label: "Zoom +", accelerator: "CommandOrControl+Plus", click: () => {
+      void stepZoom(1);
+    } },
+    { label: "Zoom −", accelerator: "CommandOrControl+-", click: () => {
+      void stepZoom(-1);
+    } },
+    { type: "separator" },
+    { role: "togglefullscreen" }
+  ];
   electron.Menu.setApplicationMenu(electron.Menu.buildFromTemplate(template));
+}
+async function stepZoom(direction) {
+  const index = GUI_ZOOM_FACTORS.indexOf(settingsManager.get().zoomFactor);
+  const next = GUI_ZOOM_FACTORS[Math.max(0, Math.min(GUI_ZOOM_FACTORS.length - 1, index + direction))];
+  await updateSettings({ zoomFactor: next });
+}
+async function updateSettings(patch) {
+  const updated = await settingsManager.update(patch);
+  mainWindow?.webContents.setZoomFactor(updated.zoomFactor);
+  viewManager?.refreshZoom();
+  mainWindow?.webContents.send(IpcChannels.SettingsChanged, updated);
+  return updated;
 }
 function attachWebContentsLogging(wc, scope) {
   const wcLog = createLogger(scope);
@@ -993,8 +1032,8 @@ async function createWindow() {
     rendererUrl: process.env["ELECTRON_RENDERER_URL"] ?? "(file)"
   });
   const window = new electron.BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: Math.min(1280, electron.screen.getPrimaryDisplay().workArea.width),
+    height: Math.min(820, electron.screen.getPrimaryDisplay().workArea.height),
     minWidth: 720,
     minHeight: 480,
     show: false,
@@ -1002,6 +1041,7 @@ async function createWindow() {
     backgroundColor: "#1e1e1e",
     icon: getWindowIcon(),
     webPreferences: {
+      zoomFactor: settingsManager.get().zoomFactor,
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: true,
       contextIsolation: true,
@@ -1013,6 +1053,28 @@ async function createWindow() {
   });
   mainWindow = window;
   viewManager = new ViewManager(window, settingsManager);
+  const fitMonitor = () => {
+    if (window.isDestroyed() || window.isFullScreen() || window.isMaximized()) return;
+    const bounds = window.getBounds();
+    const area = electron.screen.getDisplayMatching(bounds).workArea;
+    const width = Math.min(bounds.width, area.width);
+    const height = Math.min(bounds.height, area.height);
+    window.setBounds({
+      width,
+      height,
+      x: Math.max(area.x, Math.min(bounds.x, area.x + area.width - width)),
+      y: Math.max(area.y, Math.min(bounds.y, area.y + area.height - height))
+    });
+  };
+  electron.screen.on("display-metrics-changed", fitMonitor);
+  electron.screen.on("display-removed", fitMonitor);
+  window.on("closed", () => {
+    electron.screen.removeListener("display-metrics-changed", fitMonitor);
+    electron.screen.removeListener("display-removed", fitMonitor);
+  });
+  window.webContents.on("did-finish-load", () => {
+    window.webContents.setZoomFactor(settingsManager.get().zoomFactor);
+  });
   attachWebContentsLogging(window.webContents, "shell");
   window.on("closed", () => {
     log.info("main window closed");
@@ -1039,7 +1101,7 @@ async function createWindow() {
     log.info("shell ready-to-show");
     window.show();
     closeSplashWindow();
-    if (isDev) {
+    if (isDev && process.env["ELECTRON_RENDERER_URL"]) {
       window.webContents.openDevTools({ mode: "detach" });
     }
     const settings = settingsManager.get();
@@ -1073,7 +1135,7 @@ function registerIpcHandlers() {
     IpcChannels.SettingsUpdate,
     async (_event, patch) => {
       const partial = AppSettingsSchema.partial().parse(patch ?? {});
-      const updated = await settingsManager.update(partial);
+      const updated = await updateSettings(partial);
       if (viewManager && mainWindow && Object.prototype.hasOwnProperty.call(partial, "compactSidebar")) {
         viewManager.refreshLayout();
       }
@@ -1243,6 +1305,9 @@ function applyGlobalSecurity() {
     }
   );
   electron.app.on("web-contents-created", (_event, contents) => {
+    contents.on("zoom-changed", (_event2, direction) => {
+      void stepZoom(direction === "in" ? 1 : -1).catch((error) => log.error("zoom failed", { error: String(error) }));
+    });
     contents.on("will-attach-webview", (e) => {
       log.warn("will-attach-webview blocked");
       e.preventDefault();

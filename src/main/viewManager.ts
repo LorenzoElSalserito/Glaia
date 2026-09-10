@@ -15,9 +15,6 @@ import type {
 import { IpcChannels } from '../shared/contracts'
 import type { SettingsManager } from './settings'
 
-const TOOLBAR_HEIGHT = 52
-const FALLBACK_SIDEBAR_WIDTH = 280
-const COMPACT_SIDEBAR_WIDTH = 208
 const HIDDEN_BOUNDS = { x: 0, y: 0, width: 0, height: 0 }
 
 type ContextMenuLabels = {
@@ -96,6 +93,7 @@ export class ViewManager {
       view.webContents.setUserAgent(provider.customUserAgent)
     }
 
+    view.webContents.setZoomFactor(this.settingsManager.get().zoomFactor)
     this.currentView = view
     this.mainWindow.contentView.addChildView(view)
     this.applyBounds()
@@ -104,12 +102,8 @@ export class ViewManager {
   }
 
   public setHostBounds(bounds: ProviderViewBounds): void {
-    this.hostBounds = {
-      x: Math.max(0, Math.round(bounds.x)),
-      y: Math.max(0, Math.round(bounds.y)),
-      width: Math.max(0, Math.round(bounds.width)),
-      height: Math.max(0, Math.round(bounds.height)),
-    }
+    if (!Object.values(bounds).every(Number.isFinite)) return
+    this.hostBounds = bounds
     this.applyBounds()
   }
 
@@ -275,6 +269,7 @@ export class ViewManager {
       Menu.buildFromTemplate(template).popup({ window: this.mainWindow })
     })
 
+    wc.on('did-finish-load', () => wc.setZoomFactor(this.settingsManager.get().zoomFactor))
     wc.on('did-start-loading', () => this.broadcastState())
     wc.on('did-stop-loading', () => this.broadcastState())
     wc.on('did-navigate', () => this.broadcastState())
@@ -324,22 +319,25 @@ export class ViewManager {
       this.currentView.setBounds(HIDDEN_BOUNDS)
       return
     }
-    if (this.hostBounds) {
-      this.currentView.setBounds(this.hostBounds)
+    if (!this.hostBounds) {
+      this.currentView.setBounds(HIDDEN_BOUNDS)
       return
     }
-    // Fallback until the renderer reports the host bounds after mount.
-    const bounds = this.mainWindow.getContentBounds()
-    const settings = this.settingsManager.get()
-    const sidebarWidth = settings.compactSidebar
-      ? COMPACT_SIDEBAR_WIDTH
-      : FALLBACK_SIDEBAR_WIDTH
-    this.currentView.setBounds({
-      x: sidebarWidth,
-      y: TOOLBAR_HEIGHT,
-      width: Math.max(0, bounds.width - sidebarWidth),
-      height: Math.max(0, bounds.height - TOOLBAR_HEIGHT),
+    // DOM reports CSS pixels; native views use device-independent pixels.
+    const factor = this.mainWindow.webContents.getZoomFactor()
+    const content = this.mainWindow.getContentBounds()
+    const b = this.hostBounds
+    const x = Math.min(content.width, Math.max(0, Math.round(b.x * factor)))
+    const y = Math.min(content.height, Math.max(0, Math.round(b.y * factor)))
+    this.currentView.setBounds({ x, y,
+      width: Math.max(0, Math.min(content.width - x, Math.round((b.x + b.width) * factor) - x)),
+      height: Math.max(0, Math.min(content.height - y, Math.round((b.y + b.height) * factor) - y)),
     })
+  }
+
+  public refreshZoom(): void {
+    this.currentView?.webContents.setZoomFactor(this.settingsManager.get().zoomFactor)
+    this.applyBounds()
   }
 
   private computeState(): ProviderViewState {

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useState } from 'react'
-import type { AppSettings } from '../../shared/contracts'
+import { GUI_ZOOM_FACTORS, type AppSettings } from '../../shared/contracts'
 import { useT } from './i18n'
 
 interface SettingsPanelProps {
@@ -63,6 +63,15 @@ export function SettingsPanel({
             {error}
           </div>
         )}
+
+        <div className="field">
+          <label htmlFor="setting-zoom">{t('settings.zoom')}</label>
+          <select id="setting-zoom" value={local.zoomFactor}
+            onChange={(e) => apply({ zoomFactor: Number(e.target.value) as AppSettings['zoomFactor'] })}>
+            {GUI_ZOOM_FACTORS.map((factor) => <option key={factor} value={factor}>{factor * 100}%</option>)}
+          </select>
+          <span className="field__hint">{t('settings.zoomHint')}</span>
+        </div>
 
         <div className="field">
           <label htmlFor="setting-theme">{t('settings.theme')}</label>

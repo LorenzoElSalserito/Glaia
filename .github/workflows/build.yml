@@ -22,27 +22,27 @@ jobs:
           - platform: linux
             os: ubuntu-latest
             package_script: package:linux
-            artifact_glob: dist/glaia-desktop.deb
+            artifact_ext: deb
           - platform: windows
             os: windows-latest
             package_script: package:win
-            artifact_glob: dist/glaia-desktop.exe
+            artifact_ext: exe
           - platform: macos
             os: macos-latest
             package_script: package:mac
-            artifact_glob: dist/glaia-desktop.dmg
+            artifact_ext: dmg
 
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -54,12 +54,30 @@ jobs:
       - name: Test
         run: npm run test
 
+      - name: Test packaging
+        run: npm run test:packaging
+
+      - name: Install Linux packaging and display tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot xvfb
+
       - name: Build package
         run: npm run ${{ matrix.package_script }}
 
+      - name: Certify responsive GUI on Linux
+        if: runner.os == 'Linux'
+        env:
+          GLAIA_E2E_EXECUTABLE: ${{ github.workspace }}/dist/linux-unpacked/glaia-desktop
+          GLAIA_E2E_ARTIFACTS: ${{ github.workspace }}/dist/certification
+        run: xvfb-run -a -s "-screen 0 4096x2304x24" npm run test:e2e
+
+      - name: Verify versioned artifact
+        id: artifact
+        run: node scripts/verify-release-artifact.cjs "${{ matrix.artifact_ext }}"
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: glaia-${{ matrix.platform }}
-          path: ${{ matrix.artifact_glob }}
+          name: glaia-${{ matrix.platform }}-v${{ steps.artifact.outputs.version }}
+          path: ${{ steps.artifact.outputs.path }}
           if-no-files-found: error

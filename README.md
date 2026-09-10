@@ -73,3 +73,29 @@ I am open to contributions from the community! If you are interested in improvin
 ---
 
 *The true mission of Glaia is not simply to "show websites inside a window". It is to build a reliable, open source, persistent, accessible, and manageable desktop shell, capable of making the use of multiple AI services an organized, stable, and productive practice.*
+## Risoluzioni e zoom
+
+Glaia adatta la finestra all’area utile del monitor e dispone di un layout responsive
+per schermi da 800×600 a 3840×2160 (4K). In **Impostazioni → Zoom interfaccia** sono
+disponibili 25%, 50%, 75%, 100%, 125% e 150%. La scelta viene salvata e applicata
+sia alla GUI sia ai contenuti dei provider, anche dopo il riavvio. Il menu Visualizza
+e le scorciatoie Ctrl/Cmd +, − e 0 usano gli stessi livelli; 0 ripristina il 100%.
+
+Nomi provider e testi vanno a capo senza ellissi. URL molto lunghi, elenchi e
+finestre di dialogo possono richiedere scorrimento per leggere tutto. I campi di
+inserimento mantengono lo scorrimento nativo del testo. Il layout dei siti esterni
+resta sotto il controllo dei rispettivi provider: Glaia ne scala la vista, ma non
+può garantire l’assenza di difetti nel CSS di terzi.
+
+Per ripetere la certificazione su Linux senza i limiti del monitor fisico:
+
+```sh
+npm run build
+xvfb-run -a -s "-screen 0 4096x2304x24" npm run test:e2e
+```
+
+I test usano un profilo temporaneo e un provider HTTPS locale deterministico;
+non modificano documenti e sessioni personali. La CI verifica il nome effettivo
+`dist/glaia_v<versione>.<estensione>` prima di caricare ciascun artefatto.
+
+Rapporto di verifica e limiti: [CERTIFICATION.md](CERTIFICATION.md).

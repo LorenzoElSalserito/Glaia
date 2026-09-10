@@ -41,6 +41,7 @@ export interface GlaiaApi {
     ) => () => void
   }
   settings: {
+    onChanged: (callback: (settings: AppSettings) => void) => () => void
     get: () => Promise<AppSettings>
     update: (patch: Partial<AppSettings>) => Promise<AppSettings>
   }

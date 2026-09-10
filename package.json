@@ -1,6 +1,6 @@
 {
   "name": "glaia",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "AI Workspace Desktop AGPLv3",
   "main": "./out/main/index.js",
   "author": {
@@ -27,11 +27,11 @@
     "dist:win": "npm run package:win",
     "package:mac": "npm run version:bump && npm run package:prepare && electron-builder --mac --publish never",
     "dist:mac": "npm run package:mac",
-    "test:packaging": "node --test tests/packaging/",
+    "test:packaging": "node --test tests/packaging/release-packaging.test.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node --test tests/e2e/"
+    "test:e2e": "node --test tests/e2e/app.e2e.test.mjs"
   },
   "build": {
     "appId": "dev.lorenzodm.glaia",

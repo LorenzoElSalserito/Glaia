@@ -80,6 +80,11 @@ const api: GlaiaApi = {
     },
   },
   settings: {
+    onChanged: (callback: (settings: AppSettings) => void): (() => void) => {
+      const handler = (_event: unknown, settings: AppSettings) => callback(settings)
+      ipcRenderer.on(IpcChannels.SettingsChanged, handler)
+      return () => { ipcRenderer.removeListener(IpcChannels.SettingsChanged, handler) }
+    },
     get: (): Promise<AppSettings> => ipcRenderer.invoke(IpcChannels.SettingsGet),
     update: (patch: Partial<AppSettings>): Promise<AppSettings> =>
       ipcRenderer.invoke(IpcChannels.SettingsUpdate, patch),

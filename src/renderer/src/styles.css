@@ -260,8 +260,8 @@ button {
   color: inherit;
   font-weight: 500;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .provider-row__menu {
@@ -370,7 +370,8 @@ button {
 
 .toolbar {
   position: relative;
-  height: var(--toolbar-height);
+  min-height: var(--toolbar-height);
+  height: auto;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -400,9 +401,10 @@ button {
   padding: 7px 12px;
   font-size: 0.82rem;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  max-height: 25vh;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg-sunken);
@@ -692,7 +694,7 @@ button {
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   column-gap: 16px;
   row-gap: 8px;
   font-size: 0.88rem;
@@ -755,3 +757,49 @@ button {
   white-space: nowrap;
   border: 0;
 }
+
+/* Reflow uses the effective CSS viewport, including the selected global zoom. */
+html, body, #root { overflow: hidden; }
+.sidebar { flex-shrink: 0; overflow-y: auto; }
+.sidebar > :not(.sidebar__nav) { flex-shrink: 0; }
+.sidebar__nav { min-height: 64px; }
+.webview-host__placeholder { overflow: auto; padding: 16px; }
+.empty-state { flex-shrink: 0; max-width: 100%; }
+.empty-state__cta, .modal__actions, .settings-action { flex-wrap: wrap; }
+.field input, .field select { min-width: 0; max-width: 100%; }
+.modal, .toast { overflow-wrap: anywhere; }
+.toast { max-width: calc(100vw - 40px); }
+@media (max-width: 1000px) {
+  :root { --sidebar-width: 208px; }
+  .toolbar { height: auto; min-height: 52px; flex-wrap: wrap; padding: 6px; }
+  .toolbar__status:empty, .toolbar__divider { display: none; }
+  .toolbar__url { min-width: 60px; }
+}
+@media (max-width: 640px) {
+  :root, [data-compact='true'] { --sidebar-width: 176px; }
+  .sidebar { padding: 8px; gap: 8px; }
+  .sidebar__actions .btn { flex-basis: 100%; }
+  .toolbar .btn { padding: 6px 8px; }
+  .toolbar__url { order: 3; flex-basis: 100%; }
+  .empty-state { padding: 16px; gap: 8px; }
+  .empty-state__cta { flex-direction: column; }
+  .modal-backdrop { padding: 12px; }
+  .modal { padding: 16px; max-height: calc(100vh - 24px); }
+  .details-list { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-height: 500px) {
+  .sidebar { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+  .empty-state__badge { display: none; }
+  .empty-state { padding: 12px; }
+}
+
+/* Text stays complete: wrap labels and names, scroll long URL content. */
+button, label, .sidebar, .empty-state { overflow-wrap: anywhere; }
+.provider-row { flex-shrink: 0; }
+.provider-row__select { min-width: 0; overflow: visible; }
+.provider-row__menu { flex-shrink: 0; }
+.btn { white-space: normal; min-width: 0; }
+.toolbar { padding-top: 6px; padding-bottom: 6px; }
+.toolbar__status { overflow-wrap: anywhere; min-width: 0; }
+.checkbox input { flex-shrink: 0; }
+.toast { max-height: calc(100vh - 40px); overflow-y: auto; }

@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS: AppSettings = AppSettingsSchema.parse({
 })
 
 export class SettingsManager {
+  private saveQueue: Promise<void> = Promise.resolve()
   private readonly settingsPath: string
   private currentSettings: AppSettings = DEFAULT_SETTINGS
 
@@ -83,8 +84,10 @@ export class SettingsManager {
       throw new Error(`Invalid settings patch: ${result.error.message}`)
     }
     this.currentSettings = result.data
-    await this.save()
-    return this.currentSettings
+    const saved = result.data
+    this.saveQueue = this.saveQueue.catch(() => {}).then(() => this.save())
+    await this.saveQueue
+    return saved
   }
 
   private async save(): Promise<void> {
